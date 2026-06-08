@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 
+export const dynamic = 'force-dynamic'
+
 const NAV = [
   { href: '/dashboard',          label: 'Tableau de bord', icon: '⊞' },
   { href: '/dashboard/projects', label: 'Projets',         icon: '🏗️' },

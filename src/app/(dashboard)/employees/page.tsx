@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const statusBadge: Record<string, string> = {
   Active:   'bg-green-500/20 text-green-400',
   Inactive: 'bg-gray-500/20 text-gray-400',
