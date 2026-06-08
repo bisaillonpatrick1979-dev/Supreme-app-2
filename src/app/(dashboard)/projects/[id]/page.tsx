@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 const priorityColor: Record<string, string> = {
   Haute:  'bg-red-500/20 text-red-400',
   Normal: 'bg-blue-500/20 text-blue-400',

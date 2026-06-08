@@ -1,9 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { authenticateEmployeeWithPIN } from '@/lib/auth'
 import { createClient } from '@/lib/supabase/client'
+
+// Never statically prerender — needs runtime env vars and browser APIs
+export const dynamic = 'force-dynamic'
 
 interface EmployeeOption {
   id: string
@@ -14,7 +17,6 @@ interface EmployeeOption {
 
 export default function EmployeeLoginPage() {
   const router = useRouter()
-  const supabase = createClient()
 
   const [step, setStep] = useState<'select' | 'pin'>('select')
   const [employees, setEmployees] = useState<EmployeeOption[]>([])
@@ -25,23 +27,21 @@ export default function EmployeeLoginPage() {
   const [searching, setSearching] = useState(false)
   const [query, setQuery] = useState('')
 
-  async function searchEmployees(q: string) {
+  // Supabase client created lazily on first search (browser only)
+  const searchEmployees = useCallback(async (q: string) => {
     setQuery(q)
-    if (q.length < 2) {
-      setEmployees([])
-      return
-    }
+    if (q.length < 2) { setEmployees([]); return }
     setSearching(true)
+    const supabase = createClient()
     const { data } = await supabase
       .from('employees')
       .select('id, full_name, position, avatar_url')
       .ilike('full_name', `%${q}%`)
       .eq('status', 'Active')
       .limit(10)
-
     setEmployees(data ?? [])
     setSearching(false)
-  }
+  }, [])
 
   function selectEmployee(emp: EmployeeOption) {
     setSelected(emp)
@@ -54,16 +54,12 @@ export default function EmployeeLoginPage() {
     if (pin.length < 6) setPin(prev => prev + digit)
   }
 
-  function clearPin() {
-    setPin('')
-    setError('')
-  }
+  function clearPin() { setPin(''); setError('') }
 
   async function submitPIN() {
     if (!selected || pin.length < 4) return
     setError('')
     setLoading(true)
-
     try {
       await authenticateEmployeeWithPIN(selected.id, pin)
       router.push('/employee/dashboard')
@@ -115,7 +111,6 @@ export default function EmployeeLoginPage() {
 
         {step === 'pin' && (
           <div className="space-y-4">
-            {/* PIN display */}
             <div className="flex justify-center gap-3">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div
@@ -126,24 +121,19 @@ export default function EmployeeLoginPage() {
                       : 'bg-gray-800 border-gray-600'
                   }`}
                 >
-                  {i < pin.length && (
-                    <div className="w-3 h-3 rounded-full bg-white" />
-                  )}
+                  {i < pin.length && <div className="w-3 h-3 rounded-full bg-white" />}
                 </div>
               ))}
             </div>
 
-            {/* Numpad */}
             <div className="grid grid-cols-3 gap-3">
               {['1','2','3','4','5','6','7','8','9','','0','⌫'].map((d, i) => (
                 <button
                   key={i}
-                  onClick={() => d === '⌫' ? setPin(p => p.slice(0,-1)) : d ? appendPin(d) : null}
+                  onClick={() => d === '⌫' ? setPin(p => p.slice(0,-1)) : d ? appendPin(d) : undefined}
                   disabled={!d}
                   className={`h-14 rounded-xl text-xl font-semibold transition-colors ${
-                    d
-                      ? 'bg-gray-800 hover:bg-gray-700 text-white active:bg-gray-600'
-                      : 'invisible'
+                    d ? 'bg-gray-800 hover:bg-gray-700 text-white active:bg-gray-600' : 'invisible'
                   }`}
                 >
                   {d}
